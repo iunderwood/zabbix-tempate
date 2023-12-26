@@ -14,7 +14,4 @@
 # Python egg metadata
 /*.egg-info
 
-# Module Configs
-*.yaml
-
 # File downloads
