@@ -1,0 +1,388 @@
+{
+  "zabbix_export": {
+    "version": "6.4",
+    "template_groups": [
+      {
+        "uuid": "7df96b18c230490a9a0a9e2307226338",
+        "name": "Templates"
+      }
+    ],
+    "templates": [
+      {
+        "uuid": "beaa3da9829346aebc40f98e13f65704",
+        "template": "Basic SNMP and ICMP",
+        "name": "Basic SNMP and ICMP",
+        "description": "This template is a basic set of ICMP and SNMP polls.",
+        "vendor": {
+          "name": "iunderwood",
+          "version": "6.4-0"
+        },
+        "groups": [
+          {
+            "name": "Templates"
+          }
+        ],
+        "items": [
+          {
+            "uuid": "47129e1f4bc34df18c237a82f8ed24c0",
+            "name": "ICMP Ping",
+            "type": "SIMPLE",
+            "key": "icmpping",
+            "description": "This is a measure of ICMP response.  Either 0 or 1.",
+            "tags": [
+              {
+                "tag": "component",
+                "value": "health"
+              },
+              {
+                "tag": "component",
+                "value": "network"
+              }
+            ],
+            "triggers": [
+              {
+                "uuid": "a0deea2fd1924a5d97ed19f83aa930da",
+                "expression": "max(/Basic SNMP and ICMP/icmpping, {$PING_TIMEOUT})=0",
+                "name": "ICMP Unreachable",
+                "priority": "HIGH",
+                "description": "ICMP has been unavailable for the last 5 minutes",
+                "tags": [
+                  {
+                    "tag": "scope",
+                    "value": "availability"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "uuid": "dda4c899841947a8b2522d0bdc7d411d",
+            "name": "ICMP Loss",
+            "type": "SIMPLE",
+            "key": "icmppingloss",
+            "value_type": "FLOAT",
+            "units": "%",
+            "description": "This is a measure of ICMP loss in percentage.",
+            "tags": [
+              {
+                "tag": "component",
+                "value": "health"
+              },
+              {
+                "tag": "component",
+                "value": "network"
+              }
+            ],
+            "triggers": [
+              {
+                "uuid": "e66238bcd94f4402a58f4a2cfd0d6081",
+                "expression": "min(/Basic SNMP and ICMP/icmppingloss,5m)<100 and min(/Basic SNMP and ICMP/icmppingloss,5m)>{$ICMP_LOSS_WARN}",
+                "name": "High ICMP Loss",
+                "opdata": "Loss: {ITEM.LASTVALUE1}",
+                "priority": "WARNING",
+                "description": "This will trigger a warning when ICMP loss exceeds the percentage value specified in the {$ICMP_LOSS_WARN} macro.",
+                "dependencies": [
+                  {
+                    "name": "ICMP Unreachable",
+                    "expression": "max(/Basic SNMP and ICMP/icmpping, {$PING_TIMEOUT})=0"
+                  }
+                ],
+                "tags": [
+                  {
+                    "tag": "scope",
+                    "value": "availability"
+                  },
+                  {
+                    "tag": "scope",
+                    "value": "performance"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "uuid": "0ec4f97595f2412eb440b2ac20c023f7",
+            "name": "ICMP Response TIme",
+            "type": "SIMPLE",
+            "key": "icmppingsec",
+            "value_type": "FLOAT",
+            "units": "s",
+            "description": "This is a measure of ICMP response time in seconds.",
+            "tags": [
+              {
+                "tag": "component",
+                "value": "health"
+              },
+              {
+                "tag": "component",
+                "value": "network"
+              }
+            ],
+            "triggers": [
+              {
+                "uuid": "1bc62a8f67db48b6b18a983e365f1a8c",
+                "expression": "avg(/Basic SNMP and ICMP/icmppingsec,5m)>{$ICMP_TIME_WARN}",
+                "name": "High ICMP Response Time",
+                "opdata": "Time: {ITEM.LASTVALUE1}",
+                "priority": "WARNING",
+                "dependencies": [
+                  {
+                    "name": "High ICMP Loss",
+                    "expression": "min(/Basic SNMP and ICMP/icmppingloss,5m)<100 and min(/Basic SNMP and ICMP/icmppingloss,5m)>{$ICMP_LOSS_WARN}"
+                  },
+                  {
+                    "name": "ICMP Unreachable",
+                    "expression": "max(/Basic SNMP and ICMP/icmpping, {$PING_TIMEOUT})=0"
+                  }
+                ],
+                "tags": [
+                  {
+                    "tag": "scope",
+                    "value": "availability"
+                  },
+                  {
+                    "tag": "scope",
+                    "value": "performance"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "uuid": "62edd4cbfb9542d680a0da361292bc4f",
+            "name": "System Contact",
+            "type": "SNMP_AGENT",
+            "snmp_oid": "1.3.6.1.2.1.1.4.0",
+            "key": "system.contact[sysContact.0]",
+            "delay": "15m",
+            "history": "2w",
+            "trends": "0",
+            "value_type": "CHAR",
+            "description": "MIB: SNMPv2-MIB\n\nThe textual identification of the contact person for this managed node, together with information on how to contact this person.  If no contact information is known, the value is the zero-length string.",
+            "inventory_link": "CONTACT",
+            "preprocessing": [
+              {
+                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                "parameters": [
+                  "12h"
+                ]
+              }
+            ],
+            "tags": [
+              {
+                "tag": "component",
+                "value": "system"
+              }
+            ]
+          },
+          {
+            "uuid": "599cf12f5683418e80e7aa2eca297d66",
+            "name": "System Description",
+            "type": "SNMP_AGENT",
+            "snmp_oid": "1.3.6.1.2.1.1.1.0",
+            "key": "system.descr[sysDescr.0]",
+            "delay": "15m",
+            "history": "2w",
+            "trends": "0",
+            "value_type": "CHAR",
+            "description": "MIB: SNMPv2-MIB\n\nA textual description of the entity. This value should\ninclude the full name and version identification of the system's hardware type, software operating-system, and\nnetworking software.",
+            "preprocessing": [
+              {
+                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                "parameters": [
+                  "12h"
+                ]
+              }
+            ],
+            "tags": [
+              {
+                "tag": "component",
+                "value": "system"
+              }
+            ]
+          },
+          {
+            "uuid": "013a395f03ad447bb7d12c63deec1b44",
+            "name": "System Location",
+            "type": "SNMP_AGENT",
+            "snmp_oid": "1.3.6.1.2.1.1.6.0",
+            "key": "system.location[sysLocation.0]",
+            "delay": "15m",
+            "history": "2w",
+            "trends": "0",
+            "value_type": "CHAR",
+            "description": "MIB: SNMPv2-MIB\nThe physical location of this node (e.g., `telephone closet, 3rd floor').  If the location is unknown, the value is the zero-length string.",
+            "inventory_link": "LOCATION",
+            "preprocessing": [
+              {
+                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                "parameters": [
+                  "12h"
+                ]
+              }
+            ],
+            "tags": [
+              {
+                "tag": "component",
+                "value": "system"
+              }
+            ]
+          },
+          {
+            "uuid": "c083ea76129648d2b2a9a7c94d1d00aa",
+            "name": "System Name",
+            "type": "SNMP_AGENT",
+            "snmp_oid": "1.3.6.1.2.1.1.5.0",
+            "key": "system.name[sysName.0]",
+            "delay": "15m",
+            "history": "2w",
+            "trends": "0",
+            "value_type": "CHAR",
+            "description": "MIB: SNMPv2-MIB\n\nAn administratively-assigned name for this managed node.By convention, this is the node's fully-qualified domain name.  If the name is unknown, the value is the zero-length string.",
+            "inventory_link": "NAME",
+            "preprocessing": [
+              {
+                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                "parameters": [
+                  "12h"
+                ]
+              }
+            ],
+            "tags": [
+              {
+                "tag": "component",
+                "value": "system"
+              }
+            ]
+          },
+          {
+            "uuid": "dd84890cc02a40e99451e0cd10c7ff3c",
+            "name": "System Object ID",
+            "type": "SNMP_AGENT",
+            "snmp_oid": "1.3.6.1.2.1.1.2.0",
+            "key": "system.objectid[sysObjectID.0]",
+            "delay": "15m",
+            "history": "2w",
+            "trends": "0",
+            "value_type": "CHAR",
+            "description": "MIB: SNMPv2-MIB\n\nThe vendor's authoritative identification of the network management subsystem contained in the entity.  This value is allocated within the SMI enterprises subtree (1.3.6.1.4.1) and provides an easy and unambiguous means for determining`what kind of box' is being managed.  For example, if vendor`Flintstones, Inc.' was assigned the subtree1.3.6.1.4.1.4242, it could assign the identifier 1.3.6.1.4.1.4242.1.1 to its `Fred Router'.",
+            "preprocessing": [
+              {
+                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                "parameters": [
+                  "12h"
+                ]
+              }
+            ],
+            "tags": [
+              {
+                "tag": "component",
+                "value": "system"
+              }
+            ]
+          },
+          {
+            "uuid": "6a4a6039aff3492bbe108995ff3ef07d",
+            "name": "SNMP Agent Availability",
+            "type": "INTERNAL",
+            "key": "zabbix[host,snmp,available]",
+            "description": "Availability of SNMP checks on the host. The value of this item corresponds to availability icons in the host list.\nPossible value:\n0 - not available\n1 - available\n2 - unknown",
+            "valuemap": {
+              "name": "zabbix.host.available"
+            },
+            "tags": [
+              {
+                "tag": "component",
+                "value": "health"
+              },
+              {
+                "tag": "component",
+                "value": "network"
+              }
+            ],
+            "triggers": [
+              {
+                "uuid": "05eead11026947b9baa656c14d07280f",
+                "expression": "max(/Basic SNMP and ICMP/zabbix[host,snmp,available],{$SNMP_TIMEOUT})=0",
+                "name": "No SNMP Data Collection",
+                "opdata": "Current state: {ITEM.LASTVALUE1}",
+                "priority": "WARNING",
+                "description": "SNMP is not available for polling. Please check device connectivity and SNMP settings.",
+                "dependencies": [
+                  {
+                    "name": "ICMP Unreachable",
+                    "expression": "max(/Basic SNMP and ICMP/icmpping, {$PING_TIMEOUT})=0"
+                  }
+                ],
+                "tags": [
+                  {
+                    "tag": "scope",
+                    "value": "availability"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "macros": [
+          {
+            "macro": "{$ICMP_LOSS_WARN}",
+            "value": "20",
+            "description": "Percentage loss threahold where an ICMP loss warning is raised."
+          },
+          {
+            "macro": "{$ICMP_TIME_WARN}",
+            "value": "0.15",
+            "description": "Time in seconds where an ICMP response time warning is raised."
+          },
+          {
+            "macro": "{$PING_TIMEOUT}",
+            "value": "#3",
+            "description": "Number of pings to lose before raising an alarm."
+          },
+          {
+            "macro": "{$SNMP_TIMEOUT}",
+            "value": "5m",
+            "description": "SNMP Timeout before an alarm is raised."
+          }
+        ],
+        "valuemaps": [
+          {
+            "uuid": "cac380fc24d9419c974bb475112aa350",
+            "name": "zabbix.host.available",
+            "mappings": [
+              {
+                "value": "0",
+                "newvalue": "not available"
+              },
+              {
+                "value": "1",
+                "newvalue": "available"
+              },
+              {
+                "value": "2",
+                "newvalue": "unknown"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "graphs": [
+      {
+        "uuid": "d6a9bb02960c463ebedc31be302911d7",
+        "name": "Ping Response",
+        "graph_items": [
+          {
+            "color": "199C0D",
+            "calc_fnc": "ALL",
+            "item": {
+              "host": "Basic SNMP and ICMP",
+              "key": "icmpping"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
