@@ -1,0 +1,1256 @@
+zabbix_export:
+  version: '6.4'
+  template_groups:
+    - uuid: 3dcd5bbe90534f9e8eb5c2d53756af63
+      name: Templates/Power
+  templates:
+    - uuid: dc370aa507ef43e985d72953e6198ece
+      template: 'BayTech by SNMP'
+      name: 'BayTech by SNMP'
+      description: |
+        Bay Technical Associates
+        
+        MIB's used:
+        * Baytech-MIB-503-1
+      vendor:
+        name: iunderwood
+        version: 6.4-0
+      templates:
+        - name: 'Basic SNMP and ICMP'
+      groups:
+        - name: Templates/Power
+      items:
+        - uuid: 6234b214c892424ebc37d33950fe642f
+          name: sBTAModulesRPCCircuitsTable
+          type: SNMP_AGENT
+          snmp_oid: 'walk[1.3.6.1.4.1.4779.1.3.5.9.1.1, 1.3.6.1.4.1.4779.1.3.5.9.1.2]'
+          key: circuit.walk
+          delay: 1h
+          history: 6h
+          trends: '0'
+          value_type: TEXT
+          description: |
+            sBTAModulesRPCCircuitsTable
+            
+            Allows monitoring of individual outlet circuits on RPCs.
+        - uuid: f937c9d565d645ba81867e04a07ae18e
+          name: sBTAModulesRPCOutletTable
+          type: SNMP_AGENT
+          snmp_oid: 'walk[1.3.6.1.4.1.4779.1.3.5.3.1.1, 1.3.6.1.4.1.4779.1.3.5.3.1.2, 1.3.6.1.4.1.4779.1.3.5.3.1.3, 1.3.6.1.4.1.4779.1.3.5.3.1.4]'
+          key: outlet.walk
+          delay: 1h
+          history: 6h
+          trends: '0'
+          value_type: TEXT
+          description: |
+            sBTAModulesRPCOutletTable
+            
+            Allows for control of individual outlets. The number of entries is contained in the sBTAModulesRPCOutletTableSize OID.
+        - uuid: 97c78c9bc7cb4c58bd4bfcf1a38ab309
+          name: sBTAModulesRPCTable
+          type: SNMP_AGENT
+          snmp_oid: 'walk[1.3.6.1.4.1.4779.1.3.5.2.1.1, 1.3.6.1.4.1.4779.1.3.5.2.1.2]'
+          key: rpc.walk
+          delay: 1h
+          history: 6h
+          trends: '0'
+          value_type: TEXT
+          description: sBTAModulesRPCTable
+        - uuid: 69cd28ef3b3642c9bb19bbaeae4e37fe
+          name: sBTAModulesRPCRPSTable
+          type: SNMP_AGENT
+          snmp_oid: 'walk[1.3.6.1.4.1.4779.1.3.5.16.1.1]'
+          key: rps.walk
+          delay: 1h
+          history: 6h
+          trends: '0'
+          value_type: TEXT
+        - uuid: 9e72e2da044441c78bae8296311d90f4
+          name: 'System Firmware Version'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.4779.1.1.1.0
+          key: system.firmware
+          delay: 15m
+          history: 2w
+          trends: '0'
+          value_type: CHAR
+          description: |
+            Baytech-MIB-503-1::sBTAIdentFirmwareRev.0
+            
+            Firmware Version reported by the unit.  Check every hour.
+          inventory_link: SOFTWARE
+          tags:
+            - tag: component
+              value: system
+          triggers:
+            - uuid: 1d9fd6e8ebc7455da1508a963a474d8a
+              expression: |
+                change(/BayTech by SNMP/system.firmware)
+                and
+                length(last(/BayTech by SNMP/system.firmware))>0
+              name: 'System firmware has changed'
+              priority: INFO
+              description: 'The firmware version has changed.  Acknowledge to close.'
+              manual_close: 'YES'
+              tags:
+                - tag: scope
+                  value: firmware
+                - tag: scope
+                  value: notice
+        - uuid: abee636dc35e46e68f0b7007c0478697
+          name: 'System Serial Number'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.4779.1.1.2.0
+          key: system.serialnum
+          delay: 15m
+          history: 2w
+          trends: '0'
+          description: |
+            Baytech-MIB-503-1::sBTAIdentSerialNumber.0
+            
+            Collects the system serial number.
+          inventory_link: SERIALNO_A
+          tags:
+            - tag: component
+              value: system
+          triggers:
+            - uuid: daf7b49bca10489ca7bc6dd29a517b13
+              expression: |
+                change(/BayTech by SNMP/system.serialnum)
+                and
+                length(last(/BayTech by SNMP/system.serialnum))>0
+              name: 'System has been replaced'
+              priority: INFO
+              description: 'Notify that a given unit has been replaced, determined by serial number change.'
+              manual_close: 'YES'
+              tags:
+                - tag: scope
+                  value: notice
+      discovery_rules:
+        - uuid: d5d80d713b8749b99073ba354b970187
+          name: 'Circuits Table'
+          type: DEPENDENT
+          key: baytech.circuits.discovery
+          delay: '0'
+          description: |
+            sBTAModulesRPCCircuitsTable
+            
+            Allows monitoring of individual outlet circuits on RPCs.
+          item_prototypes:
+            - uuid: 3aad0eadba0d459b84c256ebe6316484
+              name: 'Circuit {#CKT_INDEX} Current'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.4779.1.3.5.9.1.4.{#SNMPINDEX}'
+              key: 'baytech.circuits[current.{#CKT_INDEX}]'
+              delay: 5m
+              history: 14d
+              value_type: FLOAT
+              units: A
+              description: |
+                sBTAModulesRPCCircuitsCurrent
+                
+                The detected current reading for the power strip.
+                If current measurement is not installed this value will always read 0.
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: component
+                  value: circuit
+                - tag: metric
+                  value: current
+            - uuid: d4d9bac4978345c5a02339eede6dbf89
+              name: 'Circuit {#CKT_INDEX} Current Alarm Threshold'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.4779.1.3.5.9.1.9.{#SNMPINDEX}'
+              key: 'baytech.circuits[currentalarm.{#CKT_INDEX}]'
+              delay: 5m
+              history: 14d
+              value_type: FLOAT
+              units: A
+              description: |
+                sBTAModulesRPCCircuitsCurrentAlarmThreshold
+                
+                The current alarm threshold level *10.  A value of 105 will set the level to 10.5.
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: component
+                  value: circuit
+            - uuid: db1abe9c5a9545a5b1141769d88ee450
+              name: 'Circuit {#CKT_INDEX} Power'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.4779.1.3.5.9.1.7.{#SNMPINDEX}'
+              key: 'baytech.circuits[power.{#CKT_INDEX}]'
+              delay: 5m
+              history: 14d
+              value_type: FLOAT
+              units: W
+              description: |
+                sBTAModulesRPCCircuitsPower
+                
+                The power reading for the power strip.
+                If voltage measurement is not installed this value will always read 0.
+              tags:
+                - tag: component
+                  value: circuit
+                - tag: metric
+                  value: power
+            - uuid: 0b64aee560314dc187979f828a56bd61
+              name: 'Circuit {#CKT_INDEX} Power Factor'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.4779.1.3.5.9.1.10.{#SNMPINDEX}'
+              key: 'baytech.circuits[powerfactor.{#CKT_INDEX}]'
+              delay: 5m
+              history: 14d
+              value_type: FLOAT
+              units: '%'
+              description: |
+                sBTAModulesRPCCircuitsPower
+                
+                The power reading for the power strip.
+                If voltage measurement is not installed this value will always read 0.
+              tags:
+                - tag: component
+                  value: circuit
+                - tag: metric
+                  value: power_factor
+            - uuid: 97ab06c6a55047e0b0fea68f882b9bd2
+              name: 'Circuit {#CKT_INDEX} Volt-Amps'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.4779.1.3.5.9.1.8.{#SNMPINDEX}'
+              key: 'baytech.circuits[va.{#CKT_INDEX}]'
+              delay: 5m
+              history: 14d
+              value_type: FLOAT
+              units: VA
+              description: |
+                sBTAModulesRPCCircuitsVA
+                
+                The volt-amps reading for the power strip.
+                If voltage measurement is not installed this value will always read 0.
+              tags:
+                - tag: component
+                  value: circuit
+                - tag: metric
+                  value: volt-amps
+            - uuid: f8f7741e8a384c08b2faeb7b603240b2
+              name: 'Circuit {#CKT_INDEX} Voltage'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.4779.1.3.5.9.1.6.{#SNMPINDEX}'
+              key: 'baytech.circuits[volts.{#CKT_INDEX}]'
+              delay: 5m
+              history: 14d
+              value_type: FLOAT
+              units: V
+              description: |
+                sBTAModulesRPCCircuitsVoltage
+                
+                The voltage reading for the power strip.
+                If voltage measurement is not installed this value will always read 0.
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: component
+                  value: circuit
+                - tag: metric
+                  value: voltage
+          trigger_prototypes:
+            - uuid: 91f324f12f304aa1b24a40b3887b6d5d
+              expression: 'avg(/BayTech by SNMP/baytech.circuits[current.{#CKT_INDEX}],5) > last(/BayTech by SNMP/baytech.circuits[currentalarm.{#CKT_INDEX}],#1)'
+              name: 'Circuit Current Threshold Exceeded'
+              priority: AVERAGE
+              description: 'Circuit is operating beyond the maximum safe current allocation for the circuit.'
+            - uuid: d8daa91cd3b14c42a5bb089196265c9e
+              expression: |
+                (avg(/BayTech by SNMP/baytech.circuits[current.{#CKT_INDEX}],5) > (last(/BayTech by SNMP/baytech.circuits[currentalarm.{#CKT_INDEX}],#1)/2))
+                and
+                
+                find(/BayTech by SNMP/system.name[sysName.0],,,"ATS")=0
+              name: 'Circuit Current Threshold Warning'
+              priority: WARNING
+              description: 'Current use exceeds half of the available circuit power.'
+          graph_prototypes:
+            - uuid: 292513e58c384e5698073d058ecf60b5
+              name: 'Circuit {#CKT_INDEX} Status'
+              graph_items:
+                - color: FFFF00
+                  yaxisside: RIGHT
+                  calc_fnc: ALL
+                  item:
+                    host: 'BayTech by SNMP'
+                    key: 'baytech.circuits[current.{#CKT_INDEX}]'
+                - sortorder: '1'
+                  drawtype: DASHED_LINE
+                  color: F63100
+                  yaxisside: RIGHT
+                  calc_fnc: ALL
+                  item:
+                    host: 'BayTech by SNMP'
+                    key: 'baytech.circuits[currentalarm.{#CKT_INDEX}]'
+                - sortorder: '2'
+                  color: 00FF00
+                  calc_fnc: ALL
+                  item:
+                    host: 'BayTech by SNMP'
+                    key: 'baytech.circuits[volts.{#CKT_INDEX}]'
+          master_item:
+            key: circuit.walk
+          preprocessing:
+            - type: SNMP_WALK_TO_JSON
+              parameters:
+                - '{#CKT_MODULE}'
+                - 1.3.6.1.4.1.4779.1.3.5.9.1.1
+                - '0'
+                - '{#CKT_INDEX}'
+                - 1.3.6.1.4.1.4779.1.3.5.9.1.2
+                - '0'
+        - uuid: c4e7b761b3064388b3473f1e1998c59e
+          name: 'Outlet Discovery'
+          type: DEPENDENT
+          key: baytech.outlets.discovery
+          delay: '0'
+          filter:
+            conditions:
+              - macro: '{#OL_STATUS}'
+                value: '[1-4]'
+                formulaid: A
+          description: |
+            sBTAModulesRPCOutletTable
+            
+            Allows for control of individual outlets. The number of entries is contained in the sBTAModulesRPCOutletTableSize OID.
+            
+            Only adds outlets that are not switched off.
+          item_prototypes:
+            - uuid: a50bb41ef6ff44a19cc861009bd2bcd1
+              name: 'Outlet {#OL_INDEX} ({#OL_NAME}) Current'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.4779.1.3.5.3.1.5.{#SNMPINDEX}'
+              key: 'baytech.outlets[current.{#OL_INDEX}]'
+              delay: 5m
+              history: 14d
+              value_type: FLOAT
+              description: |
+                sBTAModulesRPCOutletCurrent
+                
+                The outlet current in tenths of amps.
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: component
+                  value: outlet
+                - tag: description
+                  value: '{#OL_NAME}'
+                - tag: metric
+                  value: current
+                - tag: outlet
+                  value: '{#OL_INDEX}'
+            - uuid: 27761b12fec6489293db0f10b67a0bd9
+              name: 'Outlet {#OL_INDEX} ({#OL_NAME}) Current Alarm Threshold'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.4779.1.3.5.3.1.11.{#SNMPINDEX}'
+              key: 'baytech.outlets[currentalarm.{#OL_INDEX}]'
+              delay: 5m
+              history: 14d
+              value_type: FLOAT
+              description: |
+                sBTAModulesRPCOutletCurrentAlarmThreshold
+                
+                The outlet current threshold for trap generation, tenths of amps.
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: component
+                  value: outlet
+                - tag: description
+                  value: '{#OL_NAME}'
+                - tag: outlet
+                  value: '(#OL_INDEX}'
+            - uuid: 9fda7ecb06d340c2985ad8df454082e6
+              name: 'Outlet {#OL_INDEX} ({#OL_NAME}) Power'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.4779.1.3.5.3.1.8.{#SNMPINDEX}'
+              key: 'baytech.outlets[power.{#OL_INDEX}]'
+              delay: 5m
+              history: 14d
+              description: |
+                sBTAModulesRPCOutletPower
+                
+                The outlet power.
+              tags:
+                - tag: component
+                  value: outlet
+                - tag: description
+                  value: '{#OL_NAME}'
+                - tag: metric
+                  value: power
+                - tag: outlet
+                  value: '{#OL_INDEX}'
+            - uuid: c343874f8b134c0c982a9bac361e4269
+              name: 'Outlet {#OL_INDEX} ({#OL_NAME}) Power Factor'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.4779.1.3.5.3.1.10.{#SNMPINDEX}'
+              key: 'baytech.outlets[powerfactor.{#OL_INDEX}]'
+              delay: 5m
+              history: 14d
+              units: '%'
+              description: |
+                sBTAModulesRPCOutletPowerFactor
+                
+                The outlet power factor (power/VA).
+              tags:
+                - tag: component
+                  value: outlet
+                - tag: description
+                  value: '{#OL_NAME}'
+                - tag: metric
+                  value: power_factor
+                - tag: outlet
+                  value: '{#OL_INDEX}'
+            - uuid: 638a1a1468ea423ca55e3723834b1141
+              name: 'Outlet {#OL_INDEX} ({#OL_NAME}) State'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.4779.1.3.5.3.1.3.{#SNMPINDEX}'
+              key: 'baytech.outlets[state.{#OL_INDEX}]'
+              delay: 5m
+              history: 14d
+              trends: '0'
+              description: |
+                sBTAModulesRPCOutletState
+                
+                Getting this variable will return the state of the outlet.
+                Valid return states are unknown, on, off, lockon, lockoff.
+              valuemap:
+                name: 'Outlet State'
+              tags:
+                - tag: component
+                  value: outlet
+                - tag: description
+                  value: '{#OL_NAME}'
+                - tag: metric
+                  value: state
+                - tag: outlet
+                  value: '{#OL_INDEX}'
+              trigger_prototypes:
+                - uuid: 9367943c8fc54e9e946023d6b9b42e48
+                  expression: 'change(/BayTech by SNMP/baytech.outlets[state.{#OL_INDEX}])<>0'
+                  name: 'Outlet {#OL_INDEX} ({#OL_NAME}) Changed State'
+                  priority: INFO
+            - uuid: e39f76420dc64765b15bab9027168422
+              name: 'Outlet {#OL_INDEX} ({#OL_NAME}) VA'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.4779.1.3.5.3.1.9.{#SNMPINDEX}'
+              key: 'baytech.outlets[va.{#OL_INDEX}]'
+              delay: 5m
+              history: 14d
+              description: |
+                sBTAModulesRPCOutletVA
+                
+                The outlet volt-amps.
+              tags:
+                - tag: component
+                  value: outlet
+                - tag: description
+                  value: '{#OL_NAME}'
+                - tag: metric
+                  value: volt-amps
+                - tag: outlet
+                  value: '{#OL_INDEX}'
+            - uuid: a8005de2eba64759b50b1d7d64f2d86f
+              name: 'Outlet {#OL_INDEX} ({#OL_NAME}) Voltage'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.4779.1.3.5.3.1.7.{#SNMPINDEX}'
+              key: 'baytech.outlets[voltage.{#OL_INDEX}]'
+              delay: 5m
+              history: 14d
+              value_type: FLOAT
+              description: |
+                sBTAModulesRPCOutletVoltage
+                
+                The outlet voltage.
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: component
+                  value: outlet
+                - tag: description
+                  value: '{#OL_NAME}'
+                - tag: metric
+                  value: voltage
+                - tag: outlet
+                  value: '{#OL_INDEX}'
+          graph_prototypes:
+            - uuid: a2bff1d4c2d44636bf911eff0668d3bd
+              name: 'Outlet {#OL_INDEX} Graph'
+              graph_items:
+                - drawtype: DASHED_LINE
+                  color: A1887F
+                  yaxisside: RIGHT
+                  calc_fnc: ALL
+                  item:
+                    host: 'BayTech by SNMP'
+                    key: 'baytech.outlets[currentalarm.{#OL_INDEX}]'
+                - sortorder: '1'
+                  color: FFFF00
+                  yaxisside: RIGHT
+                  calc_fnc: ALL
+                  item:
+                    host: 'BayTech by SNMP'
+                    key: 'baytech.outlets[current.{#OL_INDEX}]'
+                - sortorder: '2'
+                  color: 199C0D
+                  calc_fnc: ALL
+                  item:
+                    host: 'BayTech by SNMP'
+                    key: 'baytech.outlets[voltage.{#OL_INDEX}]'
+          master_item:
+            key: outlet.walk
+          preprocessing:
+            - type: SNMP_WALK_TO_JSON
+              parameters:
+                - '{#OL_MODULE}'
+                - 1.3.6.1.4.1.4779.1.3.5.3.1.1
+                - '0'
+                - '{#OL_INDEX}'
+                - 1.3.6.1.4.1.4779.1.3.5.3.1.2
+                - '0'
+                - '{#OL_STATUS}'
+                - 1.3.6.1.4.1.4779.1.3.5.3.1.3
+                - '0'
+                - '{#OL_NAME}'
+                - 1.3.6.1.4.1.4779.1.3.5.3.1.4
+                - '0'
+        - uuid: 01710386beeb418790c0df531db12c00
+          name: 'RPC Table'
+          type: DEPENDENT
+          key: baytech.rpc.discovery
+          delay: '0'
+          description: |
+            sBTAModulesRPCEntry
+            
+            The RPCs to control and get status on.
+          item_prototypes:
+            - uuid: 86594425ce3b4d568ea67af33b45bfe4
+              name: 'RPC {#RPCINDEX} Current'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.4779.1.3.5.2.1.4.{#SNMPINDEX}'
+              key: 'baytech.rpc[current.{#RPCINDEX}]'
+              delay: 5m
+              history: 14d
+              value_type: FLOAT
+              units: A
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: component
+                  value: rpc
+                - tag: metric
+                  value: current
+            - uuid: e0ceef1ed6f544dbab0a566ce9a34eab
+              name: 'RPC {#RPCINDEX} Current Alarm Threshold'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.4779.1.3.5.2.1.12.{#SNMPINDEX}'
+              key: 'baytech.rpc[currentalarm.{#RPCINDEX}]'
+              delay: 5m
+              history: 14d
+              trends: '0'
+              value_type: FLOAT
+              units: A
+              description: |
+                sBTAModulesRPCCurrentAlarmThreshold
+                
+                The current alarm threshold level *10.  A value of 105 will set the level to 10.5.
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: component
+                  value: rpc
+                - tag: metric
+                  value: current
+              trigger_prototypes:
+                - uuid: a34c0fd31114453faa5abb8e73f4f0c1
+                  expression: 'change(/BayTech by SNMP/baytech.rpc[currentalarm.{#RPCINDEX}])'
+                  recovery_mode: RECOVERY_EXPRESSION
+                  recovery_expression: |
+                    avg(/BayTech by SNMP/baytech.rpc[currentalarm.{#RPCINDEX}],8h)=
+                    last(/BayTech by SNMP/baytech.rpc[currentalarm.{#RPCINDEX}])
+                  name: 'RPC {#RPCINDEX} Current Alarm Threshold Changed'
+                  priority: INFO
+                  description: 'Alert when the current threshold changes.'
+                  manual_close: 'YES'
+            - uuid: 3b51005b771e4af1a438d73cb4b8a243
+              name: 'RPC {#RPCINDEX} Firmware Version'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.4779.1.3.5.2.1.3.{#SNMPINDEX}'
+              key: 'baytech.rpc[firmware.{#RPCINDEX}]'
+              delay: 1h
+              history: 14d
+              trends: '0'
+              value_type: CHAR
+              tags:
+                - tag: component
+                  value: rpc
+            - uuid: 99684bd2bd91400c98e8f4669e23e23f
+              name: 'RPC {#RPCINDEX} Over Temp'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.4779.1.3.5.2.1.17.{#SNMPINDEX}'
+              key: 'baytech.rpc[overtemp.{#RPCINDEX}]'
+              delay: 1h
+              history: 14d
+              value_type: FLOAT
+              units: C
+              description: |
+                sBTAModulesRPCOverTempThreshold
+                
+                The over temperature alarm threshold level *10.  A value of 505 will set the level to 50.5.
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: component
+                  value: rpc
+            - uuid: 8df351bbb7e947c39ff2867cd4b15c6c
+              name: 'RPC {#RPCINDEX} Over Voltage'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.4779.1.3.5.2.1.13.{#SNMPINDEX}'
+              key: 'baytech.rpc[overvoltage.{#RPCINDEX}]'
+              delay: 1h
+              history: 14d
+              value_type: FLOAT
+              units: V
+              description: |
+                sBTAModulesRPCOverVoltageThreshold
+                
+                The over voltage alarm threshold level *10.  A value of 105 will set the level to 10.5.
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: component
+                  value: rpc
+              trigger_prototypes:
+                - uuid: 213bcd1cb2c5478d9e5a051d5807d6c7
+                  expression: 'change(/BayTech by SNMP/baytech.rpc[overvoltage.{#RPCINDEX}])'
+                  recovery_mode: RECOVERY_EXPRESSION
+                  recovery_expression: 'avg(/BayTech by SNMP/baytech.rpc[overvoltage.{#RPCINDEX}],8h) = last(/BayTech by SNMP/baytech.rpc[overvoltage.{#RPCINDEX}],#1)'
+                  name: 'RPC {#RPCINDEX} Over Voltage Threshold Changed'
+                  priority: INFO
+                  manual_close: 'YES'
+            - uuid: 7d21fe3c989c414b9154dc394126e046
+              name: 'RPC {#RPCINDEX} Power'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.4779.1.3.5.2.1.7.{#SNMPINDEX}'
+              key: 'baytech.rpc[power.{#RPCINDEX}]'
+              delay: 5m
+              history: 14d
+              units: W
+              description: |
+                sBTAModulesRPCPower
+                
+                The power reading for the power strip.
+                If power measurement is not installed this value will always read 0.
+              tags:
+                - tag: component
+                  value: rpc
+                - tag: metric
+                  value: power
+            - uuid: 4c90662c45bd4173a31432ca5ee29d38
+              name: 'RPC {#RPCINDEX} Temperature'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.4779.1.3.5.2.1.8.{#SNMPINDEX}'
+              key: 'baytech.rpc[temp.{#RPCINDEX}]'
+              delay: 5m
+              history: 14d
+              value_type: FLOAT
+              units: C
+              description: |
+                sBTAModulesRPCTemperature
+                
+                The temperature reading for the power strip.  Readings are in degrees C.
+                If temperature measurement is not installed this value will always read 0.
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: component
+                  value: rpc
+                - tag: metric
+                  value: temperature
+            - uuid: e92526fe13824d0fa740ab302bf8c8fb
+              name: 'RPC {#RPCINDEX} Device Type'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.4779.1.3.5.2.1.24.{#SNMPINDEX}'
+              key: 'baytech.rpc[type.{#RPCINDEX}]'
+              delay: 1h
+              history: 14d
+              trends: '0'
+              value_type: CHAR
+              description: |
+                sBTAModulesRPCType
+                
+                The type of RPC installed at the indexed location.
+              tags:
+                - tag: component
+                  value: rpc
+            - uuid: db210920b32349618fe27b2bfdba7f64
+              name: 'RPC {#RPCINDEX} Under Voltage'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.4779.1.3.5.2.1.14.{#SNMPINDEX}'
+              key: 'baytech.rpc[undervoltage.{#RPCINDEX}]'
+              delay: 1h
+              history: 14d
+              value_type: FLOAT
+              units: V
+              description: |
+                sBTAModulesRPCUnderVoltageThreshold
+                
+                The under voltage alarm threshold level *10.  A value of 105 will set the level to 10.5.
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: component
+                  value: rpc
+              trigger_prototypes:
+                - uuid: e31328cb80924e39a66183f01fa226c9
+                  expression: 'change(/BayTech by SNMP/baytech.rpc[undervoltage.{#RPCINDEX}])'
+                  recovery_mode: RECOVERY_EXPRESSION
+                  recovery_expression: 'avg(/BayTech by SNMP/baytech.rpc[undervoltage.{#RPCINDEX}],8h) = last(/BayTech by SNMP/baytech.rpc[undervoltage.{#RPCINDEX}],#1)'
+                  name: 'RPC {#RPCINDEX} Under Voltage Threshold Changed'
+                  priority: INFO
+            - uuid: 1e43a8075ccf4672b6364659eaabf4ec
+              name: 'RPC {#RPCINDEX} Volt/Amps'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.4779.1.3.5.2.1.18.{#SNMPINDEX}'
+              key: 'baytech.rpc[va.{#RPCINDEX}]'
+              delay: 5m
+              history: 14d
+              units: VA
+              description: |
+                sBTAModulesRPCUnitVA
+                
+                Total Volt-Amps for this power control device.
+              tags:
+                - tag: component
+                  value: rpc
+                - tag: metric
+                  value: volt-amps
+            - uuid: d85e71e2d5874e5eb6d14c97d2cab38d
+              name: 'RPC {#RPCINDEX} Voltage'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.4779.1.3.5.2.1.6.{#SNMPINDEX}'
+              key: 'baytech.rpc[voltage.{#RPCINDEX}]'
+              delay: 5m
+              history: 14d
+              value_type: FLOAT
+              units: V
+              description: |
+                sBTAModulesRPCVoltage
+                
+                The voltage reading for the power strip.
+                If voltage measurement is not installed this value will always read 0.
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: component
+                  value: rpc
+                - tag: metric
+                  value: voltage
+          graph_prototypes:
+            - uuid: 9e621c6152da4ed49abeac08730289bd
+              name: 'RPC {#RPCINDEX} Summary'
+              graph_items:
+                - drawtype: DASHED_LINE
+                  color: '009688'
+                  calc_fnc: ALL
+                  item:
+                    host: 'BayTech by SNMP'
+                    key: 'baytech.rpc[overvoltage.{#RPCINDEX}]'
+                - sortorder: '1'
+                  color: 00FFFF
+                  calc_fnc: ALL
+                  item:
+                    host: 'BayTech by SNMP'
+                    key: 'baytech.rpc[voltage.{#RPCINDEX}]'
+                - sortorder: '2'
+                  drawtype: DASHED_LINE
+                  color: '009688'
+                  calc_fnc: ALL
+                  item:
+                    host: 'BayTech by SNMP'
+                    key: 'baytech.rpc[undervoltage.{#RPCINDEX}]'
+                - sortorder: '3'
+                  drawtype: DASHED_LINE
+                  color: F9A825
+                  yaxisside: RIGHT
+                  calc_fnc: ALL
+                  item:
+                    host: 'BayTech by SNMP'
+                    key: 'baytech.rpc[currentalarm.{#RPCINDEX}]'
+                - sortorder: '4'
+                  color: FFFF00
+                  yaxisside: RIGHT
+                  calc_fnc: ALL
+                  item:
+                    host: 'BayTech by SNMP'
+                    key: 'baytech.rpc[current.{#RPCINDEX}]'
+            - uuid: 131bfcb4e1ae48c9964966e2900999fc
+              name: 'RPC {#RPCINDEX} Temperature'
+              yaxismax: '0'
+              show_work_period: 'NO'
+              show_triggers: 'NO'
+              type: PIE
+              graph_items:
+                - color: FF0000
+                  calc_fnc: MIN
+                  item:
+                    host: 'BayTech by SNMP'
+                    key: 'baytech.rpc[overtemp.{#RPCINDEX}]'
+                - sortorder: '1'
+                  color: 00FF00
+                  calc_fnc: MIN
+                  item:
+                    host: 'BayTech by SNMP'
+                    key: 'baytech.rpc[temp.{#RPCINDEX}]'
+          master_item:
+            key: rpc.walk
+          preprocessing:
+            - type: SNMP_WALK_TO_JSON
+              parameters:
+                - '{#RPCINDEX}'
+                - 1.3.6.1.4.1.4779.1.3.5.2.1.1
+                - '0'
+                - '{#RPCNAME}'
+                - 1.3.6.1.4.1.4779.1.3.5.2.1.2
+                - '0'
+        - uuid: 0f75a147185f4cbc97c1fda85e99a667
+          name: 'RPS Table'
+          type: DEPENDENT
+          key: baytech.rps.discovery
+          delay: '0'
+          item_prototypes:
+            - uuid: cbf2ad1cb302403b9b47215832464214
+              name: 'RPS {#RPSINDEX} Source'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.4779.1.3.5.16.1.2.{#SNMPINDEX}'
+              key: 'baytech.rps[source.{#RPSINDEX}]'
+              history: 28d
+              trends: '0'
+              description: |
+                baytech::sBTAModulesRPCRPSSource
+                
+                The Redundant Power Resources Voltage source, either '1' or '2'.
+              tags:
+                - tag: component
+                  value: power
+                - tag: component_type
+                  value: rps
+              trigger_prototypes:
+                - uuid: 179723a16b87481ab2ad7e5755d1e334
+                  expression: 'last(/BayTech by SNMP/baytech.rps[source.{#RPSINDEX}])<>{$RPS_SOURCE}'
+                  recovery_mode: RECOVERY_EXPRESSION
+                  recovery_expression: 'max(/BayTech by SNMP/baytech.rps[source.{#RPSINDEX}],30m)={$RPS_SOURCE}'
+                  name: 'RPS {#RPSINDEX} Incorrect Source'
+                  opdata: 'Current Source: {#RPSINDEX}'
+                  priority: WARNING
+                  description: |
+                    Redundant Power System Source is not on source 1!
+                    
+                    This will auto-recovery after 30 minutes.
+            - uuid: 6e71a58e71f249beae8df1c8666f32d1
+              name: 'RPS {#RPSINDEX} Switch Count'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.4779.1.3.5.16.1.4.{#SNMPINDEX}'
+              key: 'baytech.rps[switchcount.{#RPSINDEX}]'
+              history: 28d
+              trends: '0'
+              description: |
+                Baytech-MIB-503-1::sBTAModulesRPCRPSSwitchCount
+                
+                The Redundant Power Resources Voltage source switch count.
+              tags:
+                - tag: component
+                  value: power
+                - tag: component_type
+                  value: rps
+              trigger_prototypes:
+                - uuid: 10cba3b2ae6645bd80249d4f2f9d5664
+                  expression: 'changecount(/BayTech by SNMP/baytech.rps[switchcount.{#RPSINDEX}],30m,"inc")=1'
+                  recovery_mode: RECOVERY_EXPRESSION
+                  recovery_expression: |
+                    last(/BayTech by SNMP/baytech.rps[switchcount.{#RPSINDEX}])
+                    =
+                    avg(/BayTech by SNMP/baytech.rps[switchcount.{#RPSINDEX}],25m)
+                  name: 'RPS {#RPSINDEX} Switch Count Increased'
+                  priority: INFO
+                  dependencies:
+                    - name: 'RPS {#RPSINDEX} Incorrect Source'
+                      expression: 'last(/BayTech by SNMP/baytech.rps[source.{#RPSINDEX}])<>{$RPS_SOURCE}'
+                      recovery_expression: 'max(/BayTech by SNMP/baytech.rps[source.{#RPSINDEX}],30m)={$RPS_SOURCE}'
+            - uuid: 091927a8d6ed4ab4ac803f3faed35ec0
+              name: 'RPS {#RPSINDEX} Voltage - Source 1A'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.4779.1.3.5.16.1.5.{#SNMPINDEX}'
+              key: 'baytech.rps[voltage1a.{#RPSINDEX}]'
+              delay: 5m
+              history: 14d
+              value_type: FLOAT
+              units: V
+              description: |
+                Baytech-MIB-503-1::sBTAModulesRPCRPSS1PAVoltage
+                
+                The Redundant Power Resources Voltage for Source 1, Phase A.
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: component
+                  value: power
+                - tag: component_type
+                  value: rps
+                - tag: metric
+                  value: voltage
+            - uuid: 122e183f92c0415b88179f6ac0dcdf54
+              name: 'RPS {#RPSINDEX} Voltage - Source 1B'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.4779.1.3.5.16.1.6.{#SNMPINDEX}'
+              key: 'baytech.rps[voltage1b.{#RPSINDEX}]'
+              history: 14d
+              value_type: FLOAT
+              units: V
+              description: |
+                Baytech-MIB-503-1::sBTAModulesRPCRPSS1PBVoltage
+                
+                he Redundant Power Resources Voltage for Source 1, Phase B.
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: component
+                  value: power
+                - tag: component_type
+                  value: rps
+                - tag: metric
+                  value: voltage
+            - uuid: 901e172b7f6343edafc1d07770be88bd
+              name: 'RPS {#RPSINDEX} Voltage - Source 1C'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.4779.1.3.5.16.1.7.{#SNMPINDEX}'
+              key: 'baytech.rps[voltage1c.{#RPSINDEX}]'
+              delay: 5m
+              value_type: FLOAT
+              units: V
+              description: |
+                Baytech-MIB-503-1::sBTAModulesRPCRPSS1PCVoltage
+                
+                The Redundant Power Resources Voltage for Source 1, Phase C.
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: component
+                  value: power
+                - tag: component_type
+                  value: rps
+                - tag: metric
+                  value: voltage
+            - uuid: 72fc9d63cdbf438cb41015b8fa878245
+              name: 'RPS {#RPSINDEX} Voltage - Source 2A'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.4779.1.3.5.16.1.8.{#SNMPINDEX}'
+              key: 'baytech.rps[voltage2a.{#RPSINDEX}]'
+              delay: 5m
+              value_type: FLOAT
+              units: V
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: component
+                  value: power
+                - tag: component_type
+                  value: rps
+                - tag: metric
+                  value: voltage
+            - uuid: 1f67607d38fa4bff815fa03a8d837d66
+              name: 'RPS {#RPSINDEX} Voltage - Source 2B'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.4779.1.3.5.16.1.9.{#SNMPINDEX}'
+              key: 'baytech.rps[voltage2b.{#RPSINDEX}]'
+              delay: 5m
+              value_type: FLOAT
+              units: V
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '0.1'
+              tags:
+                - tag: component
+                  value: power
+                - tag: component_type
+                  value: rps
+                - tag: metric
+                  value: voltage
+            - uuid: a584cd4c3e7f45bfa27fad11f9d357d9
+              name: 'RPS {#RPSINDEX} Voltage - Source 2C'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.4779.1.3.5.16.1.10.{#SNMPINDEX}'
+              key: 'baytech.rps[voltage2c.{#RPSINDEX}]'
+              delay: 5m
+              history: 14d
+              value_type: FLOAT
+              units: V
+              tags:
+                - tag: component
+                  value: power
+                - tag: component_type
+                  value: rps
+                - tag: metric
+                  value: voltage
+          graph_prototypes:
+            - uuid: 99a905df00de49e49653868268bbb577
+              name: 'RPS {#RPSINDEX} Source 1 Voltage'
+              yaxismax: '0'
+              show_work_period: 'NO'
+              show_triggers: 'NO'
+              type: PIE
+              graph_items:
+                - color: 199C0D
+                  calc_fnc: LAST
+                  item:
+                    host: 'BayTech by SNMP'
+                    key: 'baytech.rps[voltage1a.{#RPSINDEX}]'
+                - sortorder: '1'
+                  color: F63100
+                  calc_fnc: LAST
+                  item:
+                    host: 'BayTech by SNMP'
+                    key: 'baytech.rps[voltage1b.{#RPSINDEX}]'
+                - sortorder: '2'
+                  color: 2774A4
+                  calc_fnc: LAST
+                  item:
+                    host: 'BayTech by SNMP'
+                    key: 'baytech.rps[voltage1c.{#RPSINDEX}]'
+            - uuid: 3e729895cfb84cf19c2564ea1cf52a99
+              name: 'RPS {#RPSINDEX} Source 2 Voltage'
+              yaxismax: '0'
+              show_work_period: 'NO'
+              show_triggers: 'NO'
+              type: PIE
+              graph_items:
+                - color: 199C0D
+                  calc_fnc: MIN
+                  item:
+                    host: 'BayTech by SNMP'
+                    key: 'baytech.rps[voltage2a.{#RPSINDEX}]'
+                - sortorder: '1'
+                  color: F63100
+                  calc_fnc: MIN
+                  item:
+                    host: 'BayTech by SNMP'
+                    key: 'baytech.rps[voltage2b.{#RPSINDEX}]'
+                - sortorder: '2'
+                  color: 2774A4
+                  calc_fnc: MIN
+                  item:
+                    host: 'BayTech by SNMP'
+                    key: 'baytech.rps[voltage2c.{#RPSINDEX}]'
+          master_item:
+            key: rps.walk
+          preprocessing:
+            - type: SNMP_WALK_TO_JSON
+              parameters:
+                - '{#RPSINDEX}'
+                - 1.3.6.1.4.1.4779.1.3.5.16.1.1
+                - '0'
+      tags:
+        - tag: class
+          value: power
+        - tag: target
+          value: baytech
+      macros:
+        - macro: '{$OL_POWER_DF}'
+          value: '0.1'
+          description: 'Outlet Power Differential Factor'
+        - macro: '{$OL_POWER_MIN}'
+          value: '50'
+          description: 'Minimum wattage to alert a difference on.'
+        - macro: '{$POWER_WINDOW}'
+          value: 30m
+          description: 'Minutes to hold voltage alerts'
+        - macro: '{$VOLT_HIGH}'
+          value: '260'
+          description: 'General High Voltage Threshold'
+        - macro: '{$VOLT_LOW}'
+          value: '100'
+          description: 'General Low Voltage Threshold'
+      dashboards:
+        - uuid: 685c9dfe3f6248d4ac3199b75e6bb846
+          name: 'Power Dashboard'
+          pages:
+            - name: 'Power Summary'
+              widgets:
+                - type: clock
+                  width: '8'
+                  height: '3'
+                  fields:
+                    - type: INTEGER
+                      name: adv_conf
+                      value: '1'
+                    - type: INTEGER
+                      name: clock_type
+                      value: '1'
+                    - type: INTEGER
+                      name: show
+                      value: '1'
+                    - type: INTEGER
+                      name: show
+                      value: '2'
+                    - type: INTEGER
+                      name: show
+                      value: '3'
+                    - type: INTEGER
+                      name: tzone_format
+                      value: '1'
+                - type: plaintext
+                  'y': '3'
+                  width: '8'
+                  fields:
+                    - type: ITEM
+                      name: itemids
+                      value:
+                        host: 'BayTech by SNMP'
+                        key: system.firmware
+                    - type: ITEM
+                      name: itemids
+                      value:
+                        host: 'BayTech by SNMP'
+                        key: system.serialnum
+                - type: graphprototype
+                  'y': '5'
+                  width: '8'
+                  height: '4'
+                  fields:
+                    - type: INTEGER
+                      name: columns
+                      value: '1'
+                    - type: GRAPH_PROTOTYPE
+                      name: graphid
+                      value:
+                        host: 'BayTech by SNMP'
+                        name: 'RPS {#RPSINDEX} Source 1 Voltage'
+                - type: graphprototype
+                  'y': '9'
+                  width: '8'
+                  height: '4'
+                  fields:
+                    - type: INTEGER
+                      name: columns
+                      value: '1'
+                    - type: GRAPH_PROTOTYPE
+                      name: graphid
+                      value:
+                        host: 'BayTech by SNMP'
+                        name: 'RPS {#RPSINDEX} Source 2 Voltage'
+                - type: graphprototype
+                  x: '8'
+                  width: '16'
+                  height: '9'
+                  fields:
+                    - type: INTEGER
+                      name: columns
+                      value: '1'
+                    - type: GRAPH_PROTOTYPE
+                      name: graphid
+                      value:
+                        host: 'BayTech by SNMP'
+                        name: 'RPC {#RPCINDEX} Summary'
+                - type: graphprototype
+                  x: '8'
+                  'y': '9'
+                  width: '8'
+                  height: '4'
+                  fields:
+                    - type: INTEGER
+                      name: columns
+                      value: '1'
+                    - type: GRAPH_PROTOTYPE
+                      name: graphid
+                      value:
+                        host: 'BayTech by SNMP'
+                        name: 'RPC {#RPCINDEX} Temperature'
+                - type: graph
+                  x: '16'
+                  'y': '9'
+                  width: '8'
+                  height: '4'
+                  fields:
+                    - type: GRAPH
+                      name: graphid
+                      value:
+                        host: 'BayTech by SNMP'
+                        name: 'Ping Response'
+      valuemaps:
+        - uuid: f61c3aacfabd4db8b0cb03c156020b68
+          name: 'Outlet State'
+          mappings:
+            - value: '0'
+              newvalue: 'Off'
+            - value: '1'
+              newvalue: 'On'
+            - value: '2'
+              newvalue: Reboot
+            - value: '3'
+              newvalue: 'On (Locked)'
+            - value: '4'
+              newvalue: 'Off (Locked)'
+            - value: '5'
+              newvalue: Unlocking
+            - value: '6'
+              newvalue: Unknown
+        - uuid: afedf9e4d83f4bb3a144d212a0ea5517
+          name: 'Service State'
+          mappings:
+            - value: '0'
+              newvalue: Down
+            - value: '1'
+              newvalue: Up
+  triggers:
+    - uuid: 7cc1c90963204c658ea429889444cd1f
+      expression: 'change(/BayTech by SNMP/system.name[sysName.0]) and length(last(/BayTech by SNMP/system.name[sysName.0]))>0'
+      name: 'System name has changed'
+      event_name: 'System name has changed (new name: {ITEM.VALUE})'
+      priority: INFO
+      description: 'The name of the system has changed. `Ack` to close the problem manually.'
+      manual_close: 'YES'
+      tags:
+        - tag: scope
+          value: notice
+        - tag: scope
+          value: security
